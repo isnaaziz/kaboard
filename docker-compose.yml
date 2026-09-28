@@ -1,0 +1,21 @@
+services:
+  kaboard:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4411:4411"
+    environment:
+      KABOARD_SECRET_KEY: ${KABOARD_SECRET_KEY:?set KABOARD_SECRET_KEY to a long random string}
+      KABOARD_SECURE_COOKIES: ${KABOARD_SECURE_COOKIES:-false}
+      KABOARD_TRUST_PROXY: ${KABOARD_TRUST_PROXY:-false}
+      KABOARD_LOG_LEVEL: ${KABOARD_LOG_LEVEL:-info}
+    volumes:
+      - kaboard-data:/data
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  kaboard-data:

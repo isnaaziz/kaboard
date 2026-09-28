@@ -1,0 +1,11 @@
+bin
+web/node_modules
+web/dist
+.git
+data
+.env
+.env.*
+*.pem
+*.key
+*.crt
+.DS_Store
