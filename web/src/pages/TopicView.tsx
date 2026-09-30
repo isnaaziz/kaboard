@@ -70,6 +70,7 @@ export function TopicView() {
               <Stat label="Replication" value={t.replication} />
               <Stat label="Messages" value={fmt.format(t.messages)} />
               <Stat label="Under-replicated" value={t.underReplicated} tone={t.underReplicated ? "bad" : "ok"} />
+              <Stat label="Retention" value={retention(t.configs.find((c) => c.name === "retention.ms")?.value)} />
             </Stats>
             <Tabs tabs={tabs} value={tab} onChange={setTab} />
             {tab === "Messages" && <MessageBrowser cluster={cluster} topic={topic} readOnly={readOnly} onEdit={edit} />}
@@ -82,6 +83,21 @@ export function TopicView() {
       </Query>
     </Page>
   );
+}
+
+function retention(value: string | undefined) {
+  if (value === undefined) return "—";
+  const ms = Number(value);
+  if (ms < 0) return "Unlimited";
+  const units: [number, string][] = [
+    [86_400_000, "day"],
+    [3_600_000, "hour"],
+    [60_000, "minute"],
+    [1_000, "second"],
+  ];
+  const [size, unit] = units.find(([size]) => ms >= size) ?? [1, "ms"];
+  const n = Math.round((ms / size) * 10) / 10;
+  return unit === "ms" ? `${n} ms` : `${n} ${unit}${n === 1 ? "" : "s"}`;
 }
 
 function Partitions({ topic }: { topic: Topic }) {

@@ -1,8 +1,6 @@
 import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "@fontsource-variable/inter/opsz.css";
-import "@fontsource-variable/jetbrains-mono";
 import { App } from "./App";
 import { ConfirmProvider } from "./components/Modal";
 import { toast, Toaster } from "./components/Toast";
