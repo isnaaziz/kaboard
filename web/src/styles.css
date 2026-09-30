@@ -1,7 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/Satoshi-Variable.ttf') format('truetype');
+}
+
+
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Satoshi", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-mono--font-feature-settings: "liga" 0, "calt" 0;
 
@@ -16,18 +22,21 @@
       transform: translateY(8px) scale(0.98);
     }
   }
+
   @keyframes modal-in {
     from {
       opacity: 0;
       transform: translateY(6px) scale(0.97);
     }
   }
+
   @keyframes pop-in {
     from {
       opacity: 0;
       transform: translateY(-4px);
     }
   }
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -77,19 +86,24 @@
   html {
     font-optical-sizing: auto;
   }
+
   body {
     @apply bg-zinc-950 text-sm text-zinc-200 antialiased;
   }
+
   input:not([type="checkbox"]),
   textarea {
     @apply rounded-md border border-zinc-800 bg-zinc-900 px-2.5 py-1.5 text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/40;
   }
+
   input[type="checkbox"] {
     @apply accent-indigo-500;
   }
+
   label {
     @apply flex items-center gap-2 text-xs text-zinc-400;
   }
+
   a {
     @apply text-indigo-400 hover:text-indigo-300;
   }
