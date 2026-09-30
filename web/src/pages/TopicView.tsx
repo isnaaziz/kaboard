@@ -7,7 +7,7 @@ import { MessageBrowser } from "../components/MessageBrowser";
 import { ProduceForm } from "../components/ProduceForm";
 import { useConfirm } from "../components/Modal";
 import { toast } from "../components/Toast";
-import { Badge, Button, cx, fmt, Note, Page, Query, Stat, Stats, submit, Table, Tabs, Td, Th, Tr, useCluster } from "../components/ui";
+import { Badge, Button, cx, fmt, formatBytes, Note, Page, Query, Stat, Stats, submit, Table, Tabs, Td, Th, Tr, useCluster } from "../components/ui";
 import { ChartCard, count, rate, series } from "./Health";
 
 const tabs = ["Messages", "Throughput", "Partitions", "Configs", "Produce"] as const;
@@ -103,6 +103,7 @@ export function TopicView() {
               <Stat label="Partitions" value={t.partitions} />
               <Stat label="Replication" value={t.replication} />
               <Stat label="Messages" value={fmt.format(t.messages)} />
+              <Stat label="Size" value={t.size === undefined ? "—" : formatBytes(t.size)} />
               <Stat label="Under-replicated" value={t.underReplicated} tone={t.underReplicated ? "bad" : "ok"} />
               <Stat label="Retention" value={retention(t.configs.find((c) => c.name === "retention.ms")?.value)} />
             </Stats>
@@ -233,6 +234,7 @@ function PartitionTable({ topic }: { topic: Topic }) {
           <Th num>Start</Th>
           <Th num>End</Th>
           <Th num>Messages</Th>
+          <Th num>Size</Th>
         </tr>
       </thead>
       <tbody>
@@ -250,6 +252,7 @@ function PartitionTable({ topic }: { topic: Topic }) {
             <Td num>{fmt.format(p.start)}</Td>
             <Td num>{fmt.format(p.end)}</Td>
             <Td num>{fmt.format(p.end - p.start)}</Td>
+            <Td num>{p.size === undefined ? "—" : formatBytes(p.size)}</Td>
           </Tr>
         ))}
       </tbody>

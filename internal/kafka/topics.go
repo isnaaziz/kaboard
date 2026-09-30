@@ -32,6 +32,7 @@ type TopicSummary struct {
 	Replication     int    `json:"replication"`
 	UnderReplicated int    `json:"underReplicated"`
 	Messages        int64  `json:"messages"`
+	Size            *int64 `json:"size,omitempty"`
 }
 
 type Partition struct {
@@ -42,6 +43,7 @@ type Partition struct {
 	Offline  []int32 `json:"offline"`
 	Start    int64   `json:"start"`
 	End      int64   `json:"end"`
+	Size     *int64  `json:"size,omitempty"`
 }
 
 type ConfigEntry struct {
@@ -85,9 +87,10 @@ func (c *Cluster) Topics(ctx context.Context) ([]TopicSummary, error) {
 	if err != nil {
 		return nil, err
 	}
+	sizes := c.logSizes(ctx, details.TopicsSet())
 	out := make([]TopicSummary, 0, len(details))
 	for _, d := range details.Sorted() {
-		out = append(out, summarize(d, starts, ends))
+		out = append(out, summarize(d, starts, ends, sizes))
 	}
 	return out, nil
 }
@@ -109,16 +112,17 @@ func (c *Cluster) Topic(ctx context.Context, name string) (Topic, error) {
 	if err != nil {
 		return Topic{}, err
 	}
+	sizes := c.logSizes(ctx, details.TopicsSet())
 	parts := make([]Partition, 0, len(d.Partitions))
 	for _, p := range d.Partitions.Sorted() {
 		s, _ := starts.Lookup(name, p.Partition)
 		e, _ := ends.Lookup(name, p.Partition)
 		parts = append(parts, Partition{
 			ID: p.Partition, Leader: p.Leader, Replicas: p.Replicas, ISR: p.ISR,
-			Offline: p.OfflineReplicas, Start: s.Offset, End: e.Offset,
+			Offline: p.OfflineReplicas, Start: s.Offset, End: e.Offset, Size: sizes.partition(name, p),
 		})
 	}
-	return Topic{TopicSummary: summarize(d, starts, ends), PartitionList: parts, Configs: configs}, nil
+	return Topic{TopicSummary: summarize(d, starts, ends, sizes), PartitionList: parts, Configs: configs}, nil
 }
 
 func (c *Cluster) CreateTopic(ctx context.Context, req CreateTopic) error {
@@ -252,9 +256,15 @@ func (c *Cluster) watermarks(ctx context.Context, topics ...string) (kadm.Listed
 	return starts, ends, err
 }
 
-func summarize(d kadm.TopicDetail, starts, ends kadm.ListedOffsets) TopicSummary {
+func summarize(d kadm.TopicDetail, starts, ends kadm.ListedOffsets, sizes logSizes) TopicSummary {
 	s := TopicSummary{Name: d.Topic, Internal: d.IsInternal, Partitions: len(d.Partitions)}
+	if sizes != nil {
+		s.Size = new(int64)
+	}
 	for _, p := range d.Partitions {
+		if size := sizes.partition(d.Topic, p); size != nil {
+			*s.Size += *size
+		}
 		s.Replication = max(s.Replication, len(p.Replicas))
 		if len(p.ISR) < len(p.Replicas) {
 			s.UnderReplicated++
@@ -266,4 +276,46 @@ func summarize(d kadm.TopicDetail, starts, ends kadm.ListedOffsets) TopicSummary
 		}
 	}
 	return s
+}
+
+// logSizes maps topic → partition → broker → bytes on disk.
+type logSizes map[string]map[int32]map[int32]int64
+
+// logSizes is best effort: brokers may deny DescribeLogDirs, in which case sizes are simply omitted.
+func (c *Cluster) logSizes(ctx context.Context, set kadm.TopicsSet) logSizes {
+	dirs, err := c.admin.DescribeAllLogDirs(ctx, set)
+	if err != nil && len(dirs) == 0 {
+		return nil
+	}
+	out := logSizes{}
+	dirs.Each(func(d kadm.DescribedLogDir) {
+		d.Topics.Each(func(p kadm.DescribedLogDirPartition) {
+			if p.IsFuture {
+				return
+			}
+			if out[p.Topic] == nil {
+				out[p.Topic] = map[int32]map[int32]int64{}
+			}
+			if out[p.Topic][p.Partition] == nil {
+				out[p.Topic][p.Partition] = map[int32]int64{}
+			}
+			out[p.Topic][p.Partition][p.Broker] = p.Size
+		})
+	})
+	return out
+}
+
+func (s logSizes) partition(topic string, p kadm.PartitionDetail) *int64 {
+	brokers, ok := s[topic][p.Partition]
+	if !ok {
+		return nil
+	}
+	if size, ok := brokers[p.Leader]; ok {
+		return &size
+	}
+	var largest int64
+	for _, size := range brokers {
+		largest = max(largest, size)
+	}
+	return &largest
 }

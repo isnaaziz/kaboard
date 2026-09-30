@@ -128,6 +128,10 @@ func setPartitions(ctx context.Context, c *kafka.Cluster, r *http.Request) (any,
 	return nil, c.SetPartitions(ctx, chi.URLParam(r, "topic"), req.Partitions)
 }
 
+func disks(ctx context.Context, c *kafka.Cluster, _ *http.Request) (any, error) {
+	return c.Disks(ctx)
+}
+
 func throughput(ctx context.Context, c *kafka.Cluster, r *http.Request) (any, error) {
 	return c.TopicThroughput(ctx, chi.URLParam(r, "topic")), nil
 }

@@ -15,7 +15,7 @@ export const formatTime = (ms: number) => {
 };
 
 export const formatBytes = (n: number) => {
-  const units = ["B", "KB", "MB", "GB"];
+  const units = ["B", "KB", "MB", "GB", "TB"];
   let i = 0;
   while (n >= 1024 && i < units.length - 1) {
     n /= 1024;

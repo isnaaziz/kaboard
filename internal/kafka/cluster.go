@@ -38,6 +38,7 @@ type Cluster struct {
 	admin    *kadm.Client
 	monitor  *monitor
 	schemas  *schema.Client
+	disks    diskTracker
 	ctx      context.Context
 	cancel   context.CancelFunc
 }

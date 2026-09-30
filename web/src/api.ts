@@ -6,6 +6,17 @@ export type ConnectionTest = { ok: boolean; latencyMs: number; error?: string; o
 
 export type Broker = { id: number; host: string; port: number; rack?: string; controller: boolean };
 export type Overview = { clusterId: string; controller: number; brokers: Broker[] };
+export type BrokerDisk = {
+  broker: number;
+  data: number;
+  total: number;
+  free: number;
+  dirs: number;
+  error?: string;
+  growthPerSec?: number;
+  fullInSec?: number;
+  windowSec: number;
+};
 
 export type TopicSummary = {
   name: string;
@@ -14,6 +25,7 @@ export type TopicSummary = {
   replication: number;
   underReplicated: number;
   messages: number;
+  size?: number;
 };
 
 export type Partition = {
@@ -24,6 +36,7 @@ export type Partition = {
   offline: number[] | null;
   start: number;
   end: number;
+  size?: number;
 };
 
 export type ConfigEntry = { name: string; value: string; source: string; sensitive: boolean };
@@ -170,6 +183,7 @@ export const api = {
   testConnection: (cluster: ClusterConfig, original?: string) => request<ConnectionTest>("POST", "/connections/test", { cluster, original }),
   formats: () => request<string[]>("GET", "/formats"),
   overview: (cluster: string) => request<Overview>("GET", c(cluster)),
+  disks: (cluster: string) => request<BrokerDisk[]>("GET", `${c(cluster)}/disks`),
   health: (cluster: string) => request<Health>("GET", `${c(cluster)}/health`),
   topics: (cluster: string) => request<TopicSummary[]>("GET", `${c(cluster)}/topics`),
   topic: (cluster: string, topic: string) => request<Topic>("GET", t(cluster, topic)),

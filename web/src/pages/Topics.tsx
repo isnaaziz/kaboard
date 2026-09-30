@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { api } from "../api";
 import { Modal } from "../components/Modal";
 import { toast } from "../components/Toast";
-import { Badge, Button, Field, fmt, Page, Query, submit, Table, Td, Th, Tr, useCluster } from "../components/ui";
+import { Badge, Button, Field, fmt, formatBytes, Page, Query, submit, Table, Td, Th, Tr, useCluster } from "../components/ui";
 
 export function Topics() {
   const { cluster, readOnly } = useCluster();
@@ -45,6 +45,7 @@ export function Topics() {
                 <Th num>Partitions</Th>
                 <Th num>Replication</Th>
                 <Th num>Messages</Th>
+                <Th num>Size</Th>
                 <Th>Health</Th>
               </tr>
             </thead>
@@ -60,6 +61,7 @@ export function Topics() {
                   <Td num>{t.partitions}</Td>
                   <Td num>{t.replication}</Td>
                   <Td num>{fmt.format(t.messages)}</Td>
+                  <Td num>{t.size === undefined ? "—" : formatBytes(t.size)}</Td>
                   <Td>{t.underReplicated ? <Badge tone="bad">{t.underReplicated} under-replicated</Badge> : <Badge tone="ok">healthy</Badge>}</Td>
                 </Tr>
               ))}

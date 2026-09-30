@@ -79,6 +79,7 @@ func New(o Options) http.Handler {
 					r.Use(s.cluster)
 					r.Get("/", s.do(http.StatusOK, overview))
 					r.Get("/health", s.do(http.StatusOK, health))
+					r.Get("/disks", s.do(http.StatusOK, disks))
 					r.Get("/topics", s.do(http.StatusOK, topics))
 					r.Get("/topics/{topic}", s.do(http.StatusOK, topic))
 					r.Get("/topics/{topic}/messages", s.browse)
