@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(osascript -e 'quit app \"DBX\"')",
+      "Bash(break)",
+      "Bash(python3 -)",
+      "Read(//Applications/DBX.app/Contents/MacOS/**)",
+      "Bash(grep -o -E '\"?\\(db_type|driver_profile\\)\"?[^a-z]{0,6}[a-z_]+')",
+      "Bash(grep -E '^\\(postgres|mysql|oracle|clickhouse|sqlite|sqlserver|mariadb\\)$')",
+      "Bash(grep -o -E '.{0,120}clickhouse.{0,120}')",
+      "Bash(grep -o -E '.{0,60}\\(service_name|servicename|sid\\).{0,60}')",
+      "Bash(LC_ALL=C /usr/bin/grep -i 'clickhouse')",
+      "Bash(LC_ALL=C /usr/bin/grep -i -E 'oracle')",
+      "Bash(LC_ALL=C /usr/bin/grep -i -E 'service_name|oracle_connection_type')",
+      "Bash(LC_ALL=C /usr/bin/grep 'qdrantmilvusdorisstarrocks')",
+      "Bash(python3 -c \"import sys;s=sys.stdin.read\\(\\);i=s.find\\('qdrantmilvusdorisstarrocks'\\);print\\(s[max\\(0,i-400\\):i+250]\\)\")"
+    ]
+  }
+}

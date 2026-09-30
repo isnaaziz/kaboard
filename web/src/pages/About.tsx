@@ -1,6 +1,6 @@
 import { Badge, Page } from "../components/ui";
 
-const author = "Isna Azis Nurohman";
+const author = "IAN";
 
 const stack = [
   { group: "Backend", items: ["Go", "franz-go", "kadm", "chi", "CEL"] },
