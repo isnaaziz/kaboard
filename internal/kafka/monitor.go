@@ -89,25 +89,42 @@ type Health struct {
 }
 
 type sample struct {
-	at        time.Time
-	ends      map[string]int64
-	committed map[string]int64
-	lags      map[string]int64
+	at          time.Time
+	ends        map[string]int64
+	committed   map[string]int64
+	lags        map[string]int64
+	groupTopics map[groupTopic]int64
+	topicLags   map[string]int64
 }
 
+type groupTopic struct{ group, topic string }
+
 type monitor struct {
-	cluster    *Cluster
-	mu         sync.Mutex
-	running    bool
-	lastAccess time.Time
-	window     []sample
-	series     []Point
-	maxBrokers int
-	health     Health
+	cluster     *Cluster
+	mu          sync.Mutex
+	running     bool
+	lastAccess  time.Time
+	window      []sample
+	series      []Point
+	topicSeries map[string][]Point
+	maxBrokers  int
+	health      Health
 }
 
 func (c *Cluster) Health(ctx context.Context) Health {
+	c.monitor.touch(ctx, c.ctx)
+	return c.monitor.snapshot()
+}
+
+func (c *Cluster) TopicThroughput(ctx context.Context, topic string) []Point {
 	m := c.monitor
+	m.touch(ctx, c.ctx)
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]Point{}, m.topicSeries[topic]...)
+}
+
+func (m *monitor) touch(ctx, background context.Context) {
 	m.mu.Lock()
 	m.lastAccess = time.Now()
 	start := !m.running
@@ -118,9 +135,8 @@ func (c *Cluster) Health(ctx context.Context) Health {
 		m.tick(ctx)
 	}
 	if start {
-		go m.run(c.ctx)
+		go m.run(background)
 	}
-	return m.snapshot()
 }
 
 func (m *monitor) run(ctx context.Context) {
@@ -197,10 +213,8 @@ func (m *monitor) tick(ctx context.Context) {
 		lag += l
 	}
 	if prev != nil {
-		m.series = append(m.series, Point{T: now.UnixMilli(), Produced: produced, Consumed: consumed, Lag: lag})
-		if len(m.series) > historySize {
-			m.series = slices.Delete(m.series, 0, len(m.series)-historySize)
-		}
+		m.series = appendPoint(m.series, Point{T: now.UnixMilli(), Produced: produced, Consumed: consumed, Lag: lag})
+		m.recordTopics(cur, prev, rates, now)
 	}
 	m.window = append(m.window, cur)
 	if len(m.window) > trendWindow {
@@ -216,7 +230,7 @@ func (m *monitor) tick(ctx context.Context) {
 }
 
 func (m *monitor) collect(ctx context.Context) (kadm.Metadata, sample, kadm.DescribedGroupLags, error) {
-	cur := sample{at: time.Now(), ends: map[string]int64{}, committed: map[string]int64{}, lags: map[string]int64{}}
+	cur := sample{at: time.Now(), ends: map[string]int64{}, committed: map[string]int64{}, lags: map[string]int64{}, groupTopics: map[groupTopic]int64{}, topicLags: map[string]int64{}}
 	meta, err := m.cluster.admin.Metadata(ctx)
 	if err != nil {
 		return meta, cur, nil, err
@@ -250,9 +264,11 @@ func (m *monitor) collect(ctx context.Context) (kadm.Metadata, sample, kadm.Desc
 		for _, pl := range l.Lag.Sorted() {
 			if pl.Commit.At >= 0 {
 				cur.committed[name] += pl.Commit.At
+				cur.groupTopics[groupTopic{name, pl.Topic}] += pl.Commit.At
 			}
 			if pl.Lag > 0 {
 				cur.lags[name] += pl.Lag
+				cur.topicLags[pl.Topic] += pl.Lag
 			}
 		}
 	}
@@ -308,6 +324,36 @@ func (m *monitor) groups(lags kadm.DescribedGroupLags, cur sample, prev, oldest 
 	}
 	slices.SortFunc(out, func(a, b GroupHealth) int { return cmp.Or(cmp.Compare(b.Lag, a.Lag), cmp.Compare(a.Name, b.Name)) })
 	return out
+}
+
+func (m *monitor) recordTopics(cur sample, prev *sample, produced map[string]float64, now time.Time) {
+	consumed := map[string]float64{}
+	dt := cur.at.Sub(prev.at).Seconds()
+	for k, v := range cur.groupTopics {
+		if before, ok := prev.groupTopics[k]; ok && v >= before && dt > 0 {
+			consumed[k.topic] += float64(v-before) / dt
+		}
+	}
+	if m.topicSeries == nil {
+		m.topicSeries = map[string][]Point{}
+	}
+	for name := range m.topicSeries {
+		if _, ok := cur.ends[name]; !ok {
+			delete(m.topicSeries, name)
+		}
+	}
+	for name := range cur.ends {
+		p := Point{T: now.UnixMilli(), Produced: produced[name], Consumed: consumed[name], Lag: cur.topicLags[name]}
+		m.topicSeries[name] = appendPoint(m.topicSeries[name], p)
+	}
+}
+
+func appendPoint(s []Point, p Point) []Point {
+	s = append(s, p)
+	if len(s) > historySize {
+		s = slices.Delete(s, 0, len(s)-historySize)
+	}
+	return s
 }
 
 func rate(cur, prev map[string]int64, dt float64, per map[string]float64) float64 {

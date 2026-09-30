@@ -117,6 +117,21 @@ func deleteTopic(ctx context.Context, c *kafka.Cluster, r *http.Request) (any, e
 	return nil, c.DeleteTopic(ctx, chi.URLParam(r, "topic"))
 }
 
+func setPartitions(ctx context.Context, c *kafka.Cluster, r *http.Request) (any, error) {
+	req, err := decode[struct {
+		Partitions int `json:"partitions"`
+	}](r)
+	if err != nil {
+		return nil, err
+	}
+	annotate(r, "", fmt.Sprintf("partitions → %d", req.Partitions))
+	return nil, c.SetPartitions(ctx, chi.URLParam(r, "topic"), req.Partitions)
+}
+
+func throughput(ctx context.Context, c *kafka.Cluster, r *http.Request) (any, error) {
+	return c.TopicThroughput(ctx, chi.URLParam(r, "topic")), nil
+}
+
 func purgeTopic(ctx context.Context, c *kafka.Cluster, r *http.Request) (any, error) {
 	n, err := c.PurgeTopic(ctx, chi.URLParam(r, "topic"))
 	if err != nil {

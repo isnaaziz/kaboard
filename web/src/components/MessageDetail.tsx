@@ -37,7 +37,8 @@ export function MessageDetail({ message: m, onClose, onEdit }: Props) {
       <Tabs tabs={tabs} value={tab} onChange={setTab} />
       {(tab === "Value" || tab === "Key") && (
         <p className="text-xs text-zinc-500">
-          {payload.format} · {formatBytes(payload.size)}
+          {payload.format}
+          {payload.schemaId !== undefined && ` · schema #${payload.schemaId}`} · {formatBytes(payload.size)}
         </p>
       )}
       <pre className="flex-1 overflow-auto rounded-md bg-zinc-950 p-3 font-mono text-xs break-all whitespace-pre-wrap text-zinc-300">{text}</pre>

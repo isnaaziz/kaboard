@@ -152,6 +152,22 @@ func (c *Cluster) DeleteTopic(ctx context.Context, name string) error {
 	return resp.Error()
 }
 
+func (c *Cluster) SetPartitions(ctx context.Context, name string, count int) error {
+	current, err := c.Topic(ctx, name)
+	if err != nil {
+		return err
+	}
+	if count <= current.Partitions {
+		return fmt.Errorf("%w: partitions can only be increased (currently %d)", ErrInvalid, current.Partitions)
+	}
+	resp, err := c.admin.UpdatePartitions(ctx, count, name)
+	if err != nil {
+		return err
+	}
+	r := resp[name]
+	return wrap(r.Err, r.ErrMessage)
+}
+
 func (c *Cluster) PurgeTopic(ctx context.Context, name string) (int64, error) {
 	ends, err := c.admin.ListEndOffsets(ctx, name)
 	if err != nil {

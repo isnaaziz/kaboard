@@ -1,6 +1,7 @@
 export type Sasl = { mechanism: string; username: string; password?: string };
 export type Tls = { enabled: boolean; insecureSkipVerify: boolean; ca?: string; cert?: string; key?: string };
-export type ClusterConfig = { name: string; brokers: string[]; readOnly: boolean; sasl?: Sasl | null; tls?: Tls | null };
+export type SchemaRegistry = { url: string; username?: string; password?: string };
+export type ClusterConfig = { name: string; brokers: string[]; readOnly: boolean; sasl?: Sasl | null; tls?: Tls | null; schemaRegistry?: SchemaRegistry | null };
 export type ConnectionTest = { ok: boolean; latencyMs: number; error?: string; overview?: Overview };
 
 export type Broker = { id: number; host: string; port: number; rack?: string; controller: boolean };
@@ -60,7 +61,7 @@ export type PartitionLag = {
 
 export type Group = GroupSummary & { protocol: string; memberList: GroupMember[]; lags: PartitionLag[] };
 
-export type Payload = { format: string; text: string; size: number };
+export type Payload = { format: string; text: string; size: number; schemaId?: number; raw?: string };
 export type Header = { key: string; value: string };
 
 export type Message = {
@@ -175,6 +176,8 @@ export const api = {
   createTopic: (cluster: string, body: { name: string; partitions: number; replication: number }) =>
     request<Topic>("POST", `${c(cluster)}/topics`, body),
   deleteTopic: (cluster: string, topic: string) => request<void>("DELETE", t(cluster, topic)),
+  setPartitions: (cluster: string, topic: string, partitions: number) => request<void>("PUT", `${t(cluster, topic)}/partitions`, { partitions }),
+  throughput: (cluster: string, topic: string) => request<HealthPoint[]>("GET", `${t(cluster, topic)}/throughput`),
   purgeTopic: (cluster: string, topic: string) => request<{ purged: number }>("DELETE", `${t(cluster, topic)}/messages`),
   alterConfigs: (cluster: string, topic: string, configs: Record<string, string | null>) =>
     request<void>("PATCH", `${t(cluster, topic)}/configs`, configs),
@@ -193,11 +196,11 @@ export const api = {
 };
 
 export const replayRecord = (m: Message): ProduceRecord => ({
-  key: m.key.format === "null" ? null : m.key.text,
-  value: m.value.format === "null" ? null : m.value.text,
+  key: m.key.format === "null" ? null : (m.key.raw ?? m.key.text),
+  value: m.value.format === "null" ? null : (m.value.raw ?? m.value.text),
   keyEncoding: encodingOf(m.key),
   valueEncoding: encodingOf(m.value),
   headers: m.headers,
 });
 
-const encodingOf = (p: Payload) => (p.format === "hex" || p.format === "base64" ? p.format : "string");
+const encodingOf = (p: Payload) => (p.raw ? "base64" : p.format === "hex" || p.format === "base64" ? p.format : "string");

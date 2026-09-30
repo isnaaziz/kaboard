@@ -156,6 +156,7 @@ var actions = map[string]string{
 	"PATCH /api/clusters/{cluster}/topics/{topic}/configs":   "Update topic config",
 	"GET /api/clusters/{cluster}/topics/{topic}/messages":    "Browse messages",
 	"POST /api/clusters/{cluster}/topics/{topic}/messages":   "Produce messages",
+	"PUT /api/clusters/{cluster}/topics/{topic}/partitions":  "Add partitions",
 	"DELETE /api/clusters/{cluster}/topics/{topic}/messages": "Purge topic",
 	"DELETE /api/clusters/{cluster}/groups/{group}":          "Delete consumer group",
 	"POST /api/clusters/{cluster}/groups/{group}/reset":      "Reset offsets",

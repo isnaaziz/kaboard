@@ -1,4 +1,5 @@
 import { Badge, Page } from "../components/ui";
+import { Logo } from "../components/Logo";
 
 const author = "IAN";
 
@@ -20,7 +21,7 @@ export function About() {
     <Page title="About">
       <div className="flex max-w-3xl flex-col gap-6">
         <section className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900/60 p-6">
-          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-indigo-600 text-2xl font-bold text-white">K</span>
+          <Logo className="size-14 shrink-0" />
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-zinc-50">Kaboard</h2>
@@ -58,7 +59,7 @@ export function About() {
         </section>
 
         <p className="text-xs text-zinc-600">
-          © {new Date().getFullYear()} {author}. All rights reserved.
+          © {new Date().getFullYear()} {author}. Released under the MIT License.
         </p>
       </div>
     </Page>

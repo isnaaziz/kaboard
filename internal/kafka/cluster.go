@@ -18,6 +18,7 @@ import (
 	"github.com/twmb/franz-go/pkg/sasl/plain"
 	"github.com/twmb/franz-go/pkg/sasl/scram"
 
+	"kaboard/internal/schema"
 	"kaboard/internal/store"
 )
 
@@ -36,6 +37,7 @@ type Cluster struct {
 	client   *kgo.Client
 	admin    *kadm.Client
 	monitor  *monitor
+	schemas  *schema.Client
 	ctx      context.Context
 	cancel   context.CancelFunc
 }
@@ -129,7 +131,14 @@ func (r *Registry) Test(ctx context.Context, original string, cfg store.Cluster)
 	defer c.close()
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	return c.Overview(ctx)
+	overview, err := c.Overview(ctx)
+	if err != nil || c.schemas == nil {
+		return overview, err
+	}
+	if err := c.schemas.Ping(ctx); err != nil {
+		return overview, fmt.Errorf("kafka is reachable, but %w", err)
+	}
+	return overview, nil
 }
 
 func (r *Registry) Close() {
@@ -173,6 +182,10 @@ func dial(cfg store.Cluster) (*Cluster, error) {
 	if err != nil {
 		return nil, err
 	}
+	schemas, err := schema.New(cfg.SchemaRegistry)
+	if err != nil {
+		return nil, err
+	}
 	client, err := kgo.NewClient(append(slices.Clone(opts), kgo.RecordPartitioner(kgo.ManualPartitioner()))...)
 	if err != nil {
 		return nil, err
@@ -180,7 +193,7 @@ func dial(cfg store.Cluster) (*Cluster, error) {
 	admin := kadm.NewClient(client)
 	admin.SetTimeoutMillis(10_000)
 	ctx, cancel := context.WithCancel(context.Background())
-	c := &Cluster{Name: cfg.Name, ReadOnly: cfg.ReadOnly, opts: opts, client: client, admin: admin, ctx: ctx, cancel: cancel}
+	c := &Cluster{Name: cfg.Name, ReadOnly: cfg.ReadOnly, opts: opts, client: client, admin: admin, schemas: schemas, ctx: ctx, cancel: cancel}
 	c.monitor = &monitor{cluster: c}
 	return c, nil
 }

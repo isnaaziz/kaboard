@@ -13,6 +13,14 @@ type Cluster struct {
 	ReadOnly bool     `json:"readOnly"`
 	SASL     *SASL    `json:"sasl,omitempty"`
 	TLS      *TLS     `json:"tls,omitempty"`
+
+	SchemaRegistry *SchemaRegistry `json:"schemaRegistry,omitempty"`
+}
+
+type SchemaRegistry struct {
+	URL      string `json:"url"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type SASL struct {
@@ -44,6 +52,11 @@ func (c Cluster) WithSecretsFrom(old Cluster) Cluster {
 		t.Key = old.TLS.Key
 		c.TLS = &t
 	}
+	if c.SchemaRegistry != nil && c.SchemaRegistry.Password == "" && old.SchemaRegistry != nil {
+		r := *c.SchemaRegistry
+		r.Password = old.SchemaRegistry.Password
+		c.SchemaRegistry = &r
+	}
 	return c
 }
 
@@ -57,6 +70,11 @@ func (c Cluster) mapSecrets(fn func(string) string) Cluster {
 		t := *c.TLS
 		t.Key = fn(t.Key)
 		c.TLS = &t
+	}
+	if c.SchemaRegistry != nil {
+		r := *c.SchemaRegistry
+		r.Password = fn(r.Password)
+		c.SchemaRegistry = &r
 	}
 	return c
 }

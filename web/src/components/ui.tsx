@@ -24,8 +24,10 @@ export const formatBytes = (n: number) => {
   return `${i ? n.toFixed(1) : n} ${units[i]}`;
 };
 
+const jsonFormats = new Set(["json", "avro", "protobuf", "json-schema"]);
+
 export const pretty = (text: string, format: string) => {
-  if (format !== "json") return text;
+  if (!jsonFormats.has(format)) return text;
   try {
     return JSON.stringify(JSON.parse(text), null, 2);
   } catch {

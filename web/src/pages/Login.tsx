@@ -5,6 +5,7 @@ import { useSignIn } from "../auth";
 import { submit } from "../components/ui";
 import { PasswordInput } from "../components/PasswordInput";
 import { ThemeToggle } from "../theme";
+import { Logo } from "../components/Logo";
 
 type Mode = "login" | "setup";
 
@@ -39,7 +40,7 @@ export function Login({ mode }: { mode: Mode }) {
         <div className="w-full max-w-md">
           <div className="mb-12 flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 text-lg font-bold text-white shadow-lg">K</span>
+              <Logo className="size-10 shadow-lg" />
               <div>
                 <div className="text-2xl font-bold tracking-tight text-zinc-50">Kaboard</div>
                 <div className="text-xs font-medium text-zinc-400">Kafka Admin</div>

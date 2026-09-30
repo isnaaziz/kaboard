@@ -19,12 +19,19 @@ const (
 	Hex    = "hex"
 	Base64 = "base64"
 	Null   = "null"
+
+	Registry = "schema-registry"
 )
+
+var jsonText = map[string]bool{JSON: true, "avro": true, "protobuf": true, "json-schema": true}
 
 type Payload struct {
 	Format string `json:"format"`
 	Text   string `json:"text"`
 	Size   int    `json:"size"`
+
+	SchemaID int    `json:"schemaId,omitempty"`
+	Raw      string `json:"raw,omitempty"`
 }
 
 type Decoder func([]byte) (string, bool)
@@ -52,11 +59,11 @@ func Register(name string, d Decoder, auto bool) {
 func Formats() []string {
 	mu.RLock()
 	defer mu.RUnlock()
-	out := []string{Auto}
+	out := []string{Auto, Registry}
 	for name := range decoders {
 		out = append(out, name)
 	}
-	slices.Sort(out[1:])
+	slices.Sort(out[2:])
 	return out
 }
 
@@ -96,10 +103,10 @@ func Encode(text *string, encoding string) ([]byte, error) {
 }
 
 func (p Payload) Value() any {
-	switch p.Format {
-	case Null:
+	if p.Format == Null {
 		return nil
-	case JSON:
+	}
+	if jsonText[p.Format] {
 		var v any
 		if json.Unmarshal([]byte(p.Text), &v) == nil {
 			return v

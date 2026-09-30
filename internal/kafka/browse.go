@@ -12,6 +12,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	"kaboard/internal/filter"
+	"kaboard/internal/schema"
 	"kaboard/internal/serde"
 )
 
@@ -77,6 +78,8 @@ type Sink interface {
 }
 
 type browser struct {
+	ctx      context.Context
+	schemas  *schema.Client
 	req      BrowseRequest
 	sink     Sink
 	client   *kgo.Client
@@ -93,7 +96,7 @@ func (c *Cluster) Browse(ctx context.Context, req BrowseRequest, sink Sink) erro
 	if err != nil {
 		return err
 	}
-	b := &browser{req: req, sink: sink, spans: spans}
+	b := &browser{ctx: ctx, schemas: c.schemas, req: req, sink: sink, spans: spans}
 	offsets := map[int32]kgo.Offset{}
 	for p, s := range spans {
 		if !s.Done {
@@ -315,10 +318,22 @@ func (b *browser) decode(r *kgo.Record) Message {
 		Partition: r.Partition,
 		Offset:    r.Offset,
 		Timestamp: r.Timestamp.UnixMilli(),
-		Key:       serde.Decode(r.Key, b.req.KeyFormat),
-		Value:     serde.Decode(r.Value, b.req.ValueFormat),
+		Key:       b.payload(r.Key, b.req.KeyFormat),
+		Value:     b.payload(r.Value, b.req.ValueFormat),
 		Headers:   headers,
 	}
+}
+
+func (b *browser) payload(data []byte, format string) serde.Payload {
+	if b.schemas != nil && (format == "" || format == serde.Auto || format == serde.Registry) {
+		if p, ok := b.schemas.Decode(b.ctx, data); ok {
+			return p
+		}
+	}
+	if format == serde.Registry {
+		format = serde.Auto
+	}
+	return serde.Decode(data, format)
 }
 
 func record(m Message) filter.Record {

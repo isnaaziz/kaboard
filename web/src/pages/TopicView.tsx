@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { api, type ConfigEntry, type ProduceRecord, type Topic } from "../api";
+import { LineChart } from "../components/LineChart";
 import { MessageBrowser } from "../components/MessageBrowser";
 import { ProduceForm } from "../components/ProduceForm";
 import { useConfirm } from "../components/Modal";
 import { toast } from "../components/Toast";
-import { Badge, Button, cx, fmt, Page, Query, Stat, Stats, submit, Table, Tabs, Td, Th, Tr, useCluster } from "../components/ui";
+import { Badge, Button, cx, fmt, Note, Page, Query, Stat, Stats, submit, Table, Tabs, Td, Th, Tr, useCluster } from "../components/ui";
+import { ChartCard, count, rate, series } from "./Health";
 
-const tabs = ["Messages", "Partitions", "Configs", "Produce"] as const;
+const tabs = ["Messages", "Throughput", "Partitions", "Configs", "Produce"] as const;
 type Tab = (typeof tabs)[number];
 
 export function TopicView() {
@@ -106,7 +108,8 @@ export function TopicView() {
             </Stats>
             <Tabs tabs={tabs} value={tab} onChange={setTab} />
             {tab === "Messages" && <MessageBrowser key={purges} cluster={cluster} topic={topic} readOnly={readOnly} onEdit={edit} />}
-            {tab === "Partitions" && <Partitions topic={t} />}
+            {tab === "Throughput" && <Throughput cluster={cluster} topic={topic} />}
+            {tab === "Partitions" && <Partitions cluster={cluster} topic={t} canAdmin={canAdmin} />}
             {tab === "Configs" && <Configs cluster={cluster} topic={t} readOnly={readOnly} />}
             {tab === "Produce" &&
               (readOnly ? <p className="text-zinc-500">You don't have permission to produce on this cluster.</p> : <ProduceForm cluster={cluster} topic={topic} partitions={t.partitions} draft={draft} />)}
@@ -132,7 +135,93 @@ function retention(value: string | undefined) {
   return unit === "ms" ? `${n} ms` : `${n} ${unit}${n === 1 ? "" : "s"}`;
 }
 
-function Partitions({ topic }: { topic: Topic }) {
+function Throughput({ cluster, topic }: { cluster: string; topic: string }) {
+  const q = useQuery({ queryKey: ["throughput", cluster, topic], queryFn: () => api.throughput(cluster, topic), refetchInterval: 5_000 });
+  const points = q.data ?? [];
+  const last = points.at(-1);
+  const produced = useMemo(() => points.map((p) => ({ t: p.t, v: p.produced })), [points]);
+  const consumed = useMemo(() => points.map((p) => ({ t: p.t, v: p.consumed })), [points]);
+  const lag = useMemo(() => points.map((p) => ({ t: p.t, v: p.lag })), [points]);
+
+  return (
+    <Query q={q}>
+      {() => (
+        <div className="flex flex-col gap-3">
+          {points.length === 0 && <Note tone="info">Collecting samples — the first data point appears within about 10 seconds. History covers the last hour while this page or Health is open.</Note>}
+          <div className="grid gap-3 lg:grid-cols-2">
+            <ChartCard title="Write" subtitle="Produced to this topic (msg/s)" latest={last && rate(last.produced)} latestLabel="Produced" color={series.produced}>
+              <LineChart data={produced} color={series.produced} format={rate} />
+            </ChartCard>
+            <ChartCard title="Read" subtitle="Committed by all consumer groups (msg/s)" latest={last && rate(last.consumed)} latestLabel="Consumed" color={series.consumed}>
+              <LineChart data={consumed} color={series.consumed} format={rate} />
+            </ChartCard>
+          </div>
+          <ChartCard title="Lag" subtitle="Consumer lag on this topic, all groups (messages)" latest={last && fmt.format(last.lag)} latestLabel="Lag" color={series.lag}>
+            <LineChart data={lag} color={series.lag} format={count} height={150} />
+          </ChartCard>
+        </div>
+      )}
+    </Query>
+  );
+}
+
+function Partitions({ cluster, topic, canAdmin }: { cluster: string; topic: Topic; canAdmin: boolean }) {
+  const client = useQueryClient();
+  const confirm = useConfirm();
+  const [target, setTarget] = useState<number | null>(null);
+  const save = useMutation({
+    mutationFn: (n: number) => api.setPartitions(cluster, topic.name, n),
+    meta: { error: "Could not add partitions" },
+    onSuccess: (_, n) => {
+      toast.success("Partitions added", `${topic.name} now has ${n} partitions`);
+      setTarget(null);
+      client.invalidateQueries({ queryKey: ["topic", cluster, topic.name] });
+      client.invalidateQueries({ queryKey: ["topics", cluster] });
+    },
+  });
+
+  const apply = async (n: number) => {
+    const ok = await confirm({
+      title: "Add partitions",
+      message: (
+        <>
+          Increase <strong className="text-zinc-50">{topic.name}</strong> from {topic.partitions} to {n} partitions? Partitions can never be removed, and records with the same key may land on a
+          different partition than before, which breaks per-key ordering for consumers.
+        </>
+      ),
+      confirmLabel: `Add ${n - topic.partitions} partition${n - topic.partitions > 1 ? "s" : ""}`,
+    });
+    if (ok) save.mutate(n);
+  };
+
+  return (
+    <>
+      {canAdmin && (
+        <div className="flex items-center gap-2">
+          {target === null ? (
+            <Button onClick={() => setTarget(topic.partitions + 1)}>Add partitions</Button>
+          ) : (
+            <form className="flex items-center gap-2" onSubmit={submit(() => void apply(target))}>
+              <label>
+                Total partitions
+                <input className="w-24" type="number" autoFocus min={topic.partitions + 1} max={10_000} required value={target} onChange={(e) => setTarget(Number(e.target.value))} />
+              </label>
+              <Button variant="primary" disabled={save.isPending || target <= topic.partitions}>
+                Apply
+              </Button>
+              <Button type="button" onClick={() => setTarget(null)}>
+                Cancel
+              </Button>
+            </form>
+          )}
+        </div>
+      )}
+      <PartitionTable topic={topic} />
+    </>
+  );
+}
+
+function PartitionTable({ topic }: { topic: Topic }) {
   return (
     <Table>
       <thead>

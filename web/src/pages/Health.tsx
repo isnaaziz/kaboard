@@ -5,7 +5,7 @@ import { api, type Health as HealthData, type HealthStatus, type PartitionCell }
 import { LineChart } from "../components/LineChart";
 import { Badge, cx, fmt, Page, Query, Section, Stat, Stats, stateTone, Table, Td, Th, Tr, useCluster } from "../components/ui";
 
-const series = {
+export const series = {
   produced: "var(--series-produced)",
   consumed: "var(--series-consumed)",
   lag: "var(--series-lag)",
@@ -18,8 +18,8 @@ const status: Record<HealthStatus, { color: string; icon: string; label: string;
 };
 
 const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
-const rate = (v: number) => (v < 10 ? v.toFixed(1) : compact.format(v));
-const count = (v: number) => compact.format(Math.round(v));
+export const rate = (v: number) => (v < 10 ? v.toFixed(1) : compact.format(v));
+export const count = (v: number) => compact.format(Math.round(v));
 
 export function Health() {
   const { cluster } = useCluster();
@@ -146,7 +146,7 @@ function Banner({ health: h, issues }: { health: HealthData; issues: number }) {
   );
 }
 
-function ChartCard({ title, subtitle, latest, latestLabel, color, children }: { title: string; subtitle: string; latest?: string; latestLabel: string; color: string; children: ReactNode }) {
+export function ChartCard({ title, subtitle, latest, latestLabel, color, children }: { title: string; subtitle: string; latest?: string; latestLabel: string; color: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
       <div className="flex items-start justify-between gap-4">

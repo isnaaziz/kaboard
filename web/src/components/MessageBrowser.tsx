@@ -31,6 +31,9 @@ const formatColor: Record<string, string> = {
   string: "text-sky-400 bg-sky-500/10",
   hex: "text-amber-400 bg-amber-500/10",
   base64: "text-fuchsia-400 bg-fuchsia-500/10",
+  avro: "text-indigo-300 bg-indigo-500/10",
+  protobuf: "text-indigo-300 bg-indigo-500/10",
+  "json-schema": "text-emerald-400 bg-emerald-500/10",
   null: "text-zinc-500 bg-zinc-500/10",
 };
 

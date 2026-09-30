@@ -20,6 +20,7 @@ import { Topics } from "./pages/Topics";
 import { TopicView } from "./pages/TopicView";
 import { Avatar, Users } from "./pages/Users";
 import { ThemeToggle } from "./theme";
+import { Logo } from "./components/Logo";
 
 export function App() {
   return (
@@ -102,7 +103,7 @@ function Shell() {
     <div className="grid h-screen grid-cols-[220px_1fr]">
       <aside className="flex min-h-0 flex-col gap-3 border-r border-zinc-800 bg-zinc-900/40 p-4">
         <div className="mb-2 flex items-center gap-2 text-base font-bold text-zinc-50">
-          <span className="grid size-7 place-items-center rounded-lg bg-indigo-600 text-white">K</span>
+          <Logo className="size-7" />
           Kaboard
         </div>
         <Select

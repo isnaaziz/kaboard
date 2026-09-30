@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router";
-import { api, type ClusterConfig, type Sasl, type Tls } from "../api";
+import { api, type ClusterConfig, type Sasl, type SchemaRegistry, type Tls } from "../api";
 import { useConfirm } from "../components/Modal";
 import { options, Select } from "../components/Select";
 import { toast } from "../components/Toast";
@@ -10,7 +10,7 @@ import { PasswordInput } from "../components/PasswordInput";
 
 const mechanisms = options(["", "PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512"], (m) => m || "None");
 
-type Form = { name: string; brokers: string; readOnly: boolean; sasl: Sasl; tls: Tls };
+type Form = { name: string; brokers: string; readOnly: boolean; sasl: Sasl; tls: Tls; registry: SchemaRegistry };
 
 const emptyForm: Form = {
   name: "",
@@ -18,6 +18,7 @@ const emptyForm: Form = {
   readOnly: false,
   sasl: { mechanism: "", username: "", password: "" },
   tls: { enabled: false, insecureSkipVerify: false, ca: "", cert: "", key: "" },
+  registry: { url: "", username: "", password: "" },
 };
 
 const toForm = (c: ClusterConfig): Form => ({
@@ -26,6 +27,7 @@ const toForm = (c: ClusterConfig): Form => ({
   readOnly: c.readOnly,
   sasl: { ...emptyForm.sasl, ...c.sasl },
   tls: { ...emptyForm.tls, ...c.tls },
+  registry: { ...emptyForm.registry, ...c.schemaRegistry },
 });
 
 const toConfig = (f: Form): ClusterConfig => ({
@@ -34,6 +36,7 @@ const toConfig = (f: Form): ClusterConfig => ({
   readOnly: f.readOnly,
   sasl: f.sasl.mechanism ? f.sasl : null,
   tls: f.tls.enabled ? f.tls : null,
+  schemaRegistry: f.registry.url.trim() ? { ...f.registry, url: f.registry.url.trim() } : null,
 });
 
 export function ClusterForm() {
@@ -61,6 +64,7 @@ function Editor({ original, initial }: { original?: string; initial: Form }) {
   const patch = (p: Partial<Form>) => setForm((f) => ({ ...f, ...p }));
   const patchSasl = (p: Partial<Sasl>) => setForm((f) => ({ ...f, sasl: { ...f.sasl, ...p } }));
   const patchTls = (p: Partial<Tls>) => setForm((f) => ({ ...f, tls: { ...f.tls, ...p } }));
+  const patchRegistry = (p: Partial<SchemaRegistry>) => setForm((f) => ({ ...f, registry: { ...f.registry, ...p } }));
 
   const test = useMutation({ mutationFn: () => api.testConnection(toConfig(form), original) });
   const save = useMutation({
@@ -162,6 +166,22 @@ function Editor({ original, initial }: { original?: string; initial: Form }) {
               <Pem label="Client certificate" hint="optional, for mTLS" value={form.tls.cert} onChange={(cert) => patchTls({ cert })} />
               <Pem label="Client key" hint={secretHint || "optional, for mTLS"} value={form.tls.key} onChange={(key) => patchTls({ key })} />
             </>
+          )}
+        </Group>
+
+        <Group title="Schema Registry">
+          <Field label="URL" hint="optional — decodes Avro, Protobuf and JSON Schema messages">
+            <input type="url" placeholder="http://schema-registry:8081" value={form.registry.url} onChange={(e) => patchRegistry({ url: e.target.value })} />
+          </Field>
+          {form.registry.url.trim() && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Username" hint="optional, basic auth">
+                <input autoComplete="off" value={form.registry.username ?? ""} onChange={(e) => patchRegistry({ username: e.target.value })} />
+              </Field>
+              <Field label="Password" hint={secretHint || "optional"}>
+                <PasswordInput autoComplete="new-password" value={form.registry.password ?? ""} onChange={(e) => patchRegistry({ password: e.target.value })} />
+              </Field>
+            </div>
           )}
         </Group>
 
