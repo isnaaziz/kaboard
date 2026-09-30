@@ -18,6 +18,7 @@ export function TopicView() {
   const client = useQueryClient();
   const [tab, setTab] = useState<Tab>("Messages");
   const [draft, setDraft] = useState<ProduceRecord | undefined>();
+  const [purges, setPurges] = useState(0);
   const q = useQuery({ queryKey: ["topic", cluster, topic], queryFn: () => api.topic(cluster, topic), refetchInterval: 10_000 });
 
   const confirm = useConfirm();
@@ -30,6 +31,32 @@ export function TopicView() {
       navigate("..", { relative: "path" });
     },
   });
+
+  const purge = useMutation({
+    mutationFn: () => api.purgeTopic(cluster, topic),
+    meta: { error: "Could not purge topic" },
+    onSuccess: ({ purged }) => {
+      client.invalidateQueries({ queryKey: ["topic", cluster, topic] });
+      client.invalidateQueries({ queryKey: ["topics", cluster] });
+      setPurges((n) => n + 1);
+      toast.success("Topic purged", `${fmt.format(purged)} messages deleted from ${topic}`);
+    },
+  });
+
+  const confirmPurge = async () => {
+    const ok = await confirm({
+      title: "Purge topic",
+      message: (
+        <>
+          This permanently deletes all messages in <strong className="text-zinc-50">{topic}</strong>. The topic and its configs are kept. This cannot be undone.
+        </>
+      ),
+      confirmLabel: "Purge messages",
+      danger: true,
+      requireText: topic,
+    });
+    if (ok) purge.mutate();
+  };
 
   const confirmDelete = async () => {
     const ok = await confirm({
@@ -56,9 +83,14 @@ export function TopicView() {
       title={topic}
       actions={
         canAdmin && (
-          <Button variant="danger" onClick={confirmDelete} disabled={remove.isPending}>
-            Delete topic
-          </Button>
+          <>
+            <Button onClick={confirmPurge} disabled={purge.isPending || remove.isPending}>
+              Purge messages
+            </Button>
+            <Button variant="danger" onClick={confirmDelete} disabled={remove.isPending || purge.isPending}>
+              Delete topic
+            </Button>
+          </>
         )
       }
     >
@@ -73,7 +105,7 @@ export function TopicView() {
               <Stat label="Retention" value={retention(t.configs.find((c) => c.name === "retention.ms")?.value)} />
             </Stats>
             <Tabs tabs={tabs} value={tab} onChange={setTab} />
-            {tab === "Messages" && <MessageBrowser cluster={cluster} topic={topic} readOnly={readOnly} onEdit={edit} />}
+            {tab === "Messages" && <MessageBrowser key={purges} cluster={cluster} topic={topic} readOnly={readOnly} onEdit={edit} />}
             {tab === "Partitions" && <Partitions topic={t} />}
             {tab === "Configs" && <Configs cluster={cluster} topic={t} readOnly={readOnly} />}
             {tab === "Produce" &&

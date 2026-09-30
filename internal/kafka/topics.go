@@ -152,6 +152,40 @@ func (c *Cluster) DeleteTopic(ctx context.Context, name string) error {
 	return resp.Error()
 }
 
+func (c *Cluster) PurgeTopic(ctx context.Context, name string) (int64, error) {
+	ends, err := c.admin.ListEndOffsets(ctx, name)
+	if err != nil {
+		return 0, err
+	}
+	if err := ends.Error(); err != nil {
+		return 0, notFound("topic", name, err)
+	}
+	if _, ok := ends[name]; !ok {
+		return 0, notFound("topic", name, nil)
+	}
+	starts, err := c.admin.ListStartOffsets(ctx, name)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := c.admin.DeleteRecords(ctx, ends.Offsets())
+	if err != nil {
+		return 0, err
+	}
+	var purged int64
+	for _, p := range resp[name] {
+		if errors.Is(p.Err, kerr.PolicyViolation) {
+			return 0, wrap(p.Err, "records can only be purged from topics with cleanup.policy=delete")
+		}
+		if p.Err != nil {
+			return 0, p.Err
+		}
+		if s, ok := starts.Lookup(name, p.Partition); ok {
+			purged += p.LowWatermark - s.Offset
+		}
+	}
+	return purged, nil
+}
+
 func (c *Cluster) AlterTopicConfigs(ctx context.Context, name string, set map[string]*string) error {
 	alters := make([]kadm.AlterConfig, 0, len(set))
 	for k, v := range set {

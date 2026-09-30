@@ -117,6 +117,15 @@ func deleteTopic(ctx context.Context, c *kafka.Cluster, r *http.Request) (any, e
 	return nil, c.DeleteTopic(ctx, chi.URLParam(r, "topic"))
 }
 
+func purgeTopic(ctx context.Context, c *kafka.Cluster, r *http.Request) (any, error) {
+	n, err := c.PurgeTopic(ctx, chi.URLParam(r, "topic"))
+	if err != nil {
+		return nil, err
+	}
+	annotate(r, "", fmt.Sprintf("%d messages purged", n))
+	return map[string]int64{"purged": n}, nil
+}
+
 func alterConfigs(ctx context.Context, c *kafka.Cluster, r *http.Request) (any, error) {
 	req, err := decode[map[string]*string](r)
 	if err != nil {

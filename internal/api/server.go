@@ -89,6 +89,7 @@ func New(o Options) http.Handler {
 					r.With(requireRole(auth.RoleOperator)).Post("/topics/{topic}/messages", s.do(http.StatusCreated, produce))
 					r.With(requireRole(auth.RoleOperator)).Post("/groups/{group}/reset", s.do(http.StatusNoContent, resetOffsets))
 					r.With(requireRole(auth.RoleAdmin)).Delete("/topics/{topic}", s.do(http.StatusNoContent, deleteTopic))
+					r.With(requireRole(auth.RoleAdmin)).Delete("/topics/{topic}/messages", s.do(http.StatusOK, purgeTopic))
 					r.With(requireRole(auth.RoleAdmin)).Delete("/groups/{group}", s.do(http.StatusNoContent, deleteGroup))
 				})
 			})

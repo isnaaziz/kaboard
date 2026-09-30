@@ -175,6 +175,7 @@ export const api = {
   createTopic: (cluster: string, body: { name: string; partitions: number; replication: number }) =>
     request<Topic>("POST", `${c(cluster)}/topics`, body),
   deleteTopic: (cluster: string, topic: string) => request<void>("DELETE", t(cluster, topic)),
+  purgeTopic: (cluster: string, topic: string) => request<{ purged: number }>("DELETE", `${t(cluster, topic)}/messages`),
   alterConfigs: (cluster: string, topic: string, configs: Record<string, string | null>) =>
     request<void>("PATCH", `${t(cluster, topic)}/configs`, configs),
   produce: (cluster: string, topic: string, records: ProduceRecord[]) =>
