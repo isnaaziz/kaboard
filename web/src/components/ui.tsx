@@ -180,7 +180,7 @@ export function Td({ num, dense, className, ...props }: TdHTMLAttributes<HTMLTab
   return <td className={cx("border-b border-zinc-800/60 px-3 py-2", num && "text-right tabular-nums", dense && "text-xs tabular-nums", className)} {...props} />;
 }
 
-export const Tr = ({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) => <tr className={cx("hover:bg-zinc-900/60", className)} {...props} />;
+export const Tr = ({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) => <tr className={cx("hover:bg-zinc-800/40", className)} {...props} />;
 
 export const stateTone = (state: string): Tone =>
   (({ Stable: "ok", Empty: "muted", Dead: "bad", PreparingRebalance: "warn", CompletingRebalance: "warn" }) as Record<string, Tone>)[state] ?? "info";

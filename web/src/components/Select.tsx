@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { usePopover } from "./popover";
 import { cx } from "./ui";
 
 export type Option<T> = { value: T; label: ReactNode; disabled?: boolean };
@@ -17,26 +19,22 @@ type Props<T> = {
 export function Select<T extends string | number>({ value, options, onChange, placeholder = "Select…", disabled, align = "left", className, ...rest }: Props<T>) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const root = useRef<HTMLDivElement>(null);
-  const list = useRef<HTMLUListElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  const { anchor, panel: list, style } = usePopover<HTMLButtonElement, HTMLUListElement>(open, close, { align, matchWidth: true });
   const id = useId();
   const current = options.find((o) => o.value === value);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (!root.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
-  }, [open]);
 
   useEffect(() => {
     if (open) list.current?.children[active]?.scrollIntoView({ block: "nearest" });
   }, [open, active]);
 
   const show = () => {
-    setActive(Math.max(0, options.findIndex((o) => o.value === value)));
+    setActive(
+      Math.max(
+        0,
+        options.findIndex((o) => o.value === value),
+      ),
+    );
     setOpen(true);
   };
 
@@ -82,8 +80,9 @@ export function Select<T extends string | number>({ value, options, onChange, pl
   };
 
   return (
-    <div ref={root} className={cx("relative", className)}>
+    <div className={className}>
       <button
+        ref={anchor}
         type="button"
         role="combobox"
         aria-haspopup="listbox"
@@ -104,42 +103,42 @@ export function Select<T extends string | number>({ value, options, onChange, pl
           <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {open && (
-        <ul
-          id={id}
-          ref={list}
-          role="listbox"
-          className={cx(
-            "animate-pop-in absolute z-50 mt-1 max-h-64 min-w-full overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 p-1 shadow-xl shadow-black/50",
-            align === "right" ? "right-0" : "left-0",
-          )}
-        >
-          {options.map((o, i) => {
-            const selected = o.value === value;
-            return (
-              <li
-                key={String(o.value)}
-                role="option"
-                aria-selected={selected}
-                aria-disabled={o.disabled}
-                onPointerEnter={() => setActive(i)}
-                onClick={() => pick(o)}
-                className={cx(
-                  "flex cursor-pointer items-center justify-between gap-4 rounded-md px-2.5 py-1.5 whitespace-nowrap",
-                  i === active && "bg-zinc-800",
-                  selected ? "text-zinc-50" : "text-zinc-300",
-                  o.disabled && "cursor-not-allowed opacity-40",
-                )}
-              >
-                {o.label}
-                <svg viewBox="0 0 16 16" className={cx("size-3.5 text-indigo-400", !selected && "invisible")} aria-hidden="true">
-                  <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {open &&
+        createPortal(
+          <ul
+            id={id}
+            ref={list}
+            role="listbox"
+            style={style}
+            className="animate-pop-in z-[95] max-h-64 overflow-auto rounded-lg border border-zinc-700 bg-zinc-900 p-1 shadow-xl shadow-black/20"
+          >
+            {options.map((o, i) => {
+              const selected = o.value === value;
+              return (
+                <li
+                  key={String(o.value)}
+                  role="option"
+                  aria-selected={selected}
+                  aria-disabled={o.disabled}
+                  onPointerEnter={() => setActive(i)}
+                  onClick={() => pick(o)}
+                  className={cx(
+                    "flex cursor-pointer items-center justify-between gap-4 rounded-md px-2.5 py-1.5 whitespace-nowrap",
+                    i === active && "bg-zinc-800",
+                    selected ? "text-zinc-50" : "text-zinc-300",
+                    o.disabled && "cursor-not-allowed opacity-40",
+                  )}
+                >
+                  {o.label}
+                  <svg viewBox="0 0 16 16" className={cx("size-3.5 text-indigo-400", !selected && "invisible")} aria-hidden="true">
+                    <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </li>
+              );
+            })}
+          </ul>,
+          document.body,
+        )}
     </div>
   );
 }

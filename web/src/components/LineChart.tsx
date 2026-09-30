@@ -74,13 +74,13 @@ export function LineChart({ data, color, format, height = 180 }: Props) {
         <svg width={width} height={height} className="block touch-none" onPointerMove={onMove} onPointerLeave={() => setHover(null)}>
           <defs>
             <linearGradient id={gradient} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.22} />
-              <stop offset="100%" stopColor={color} stopOpacity={0} />
+              <stop offset="0%" style={{ stopColor: color }} stopOpacity={0.22} />
+              <stop offset="100%" style={{ stopColor: color }} stopOpacity={0} />
             </linearGradient>
           </defs>
           {geo.ticks.map((v) => (
             <g key={v}>
-              <line x1={pad.left} x2={width - pad.right} y1={geo.y(v)} y2={geo.y(v)} stroke="#27272a" strokeDasharray={v ? "2 4" : undefined} />
+              <line x1={pad.left} x2={width - pad.right} y1={geo.y(v)} y2={geo.y(v)} className="stroke-zinc-800" strokeDasharray={v ? "2 4" : undefined} />
               <text x={pad.left - 8} y={geo.y(v)} dy="0.32em" textAnchor="end" className="fill-zinc-500 text-[10px] tabular-nums">
                 {axis.format(v)}
               </text>
@@ -93,11 +93,11 @@ export function LineChart({ data, color, format, height = 180 }: Props) {
             {clock(geo.t1)}
           </text>
           <path d={geo.area} fill={`url(#${gradient})`} />
-          <path d={geo.line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={geo.line} fill="none" style={{ stroke: color }} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
           {point && (
             <>
-              <line x1={geo.x(point.t)} x2={geo.x(point.t)} y1={pad.top} y2={geo.bottom} stroke="#52525b" />
-              <circle cx={geo.x(point.t)} cy={geo.y(point.v)} r={4} fill={color} stroke="#18181b" strokeWidth={2} />
+              <line x1={geo.x(point.t)} x2={geo.x(point.t)} y1={pad.top} y2={geo.bottom} className="stroke-zinc-600" />
+              <circle cx={geo.x(point.t)} cy={geo.y(point.v)} r={4} className="stroke-zinc-900" style={{ fill: color }} strokeWidth={2} />
             </>
           )}
         </svg>

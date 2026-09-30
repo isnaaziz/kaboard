@@ -19,6 +19,7 @@ import { Login } from "./pages/Login";
 import { Topics } from "./pages/Topics";
 import { TopicView } from "./pages/TopicView";
 import { Avatar, Users } from "./pages/Users";
+import { ThemeToggle } from "./theme";
 
 export function App() {
   return (
@@ -151,7 +152,8 @@ function Shell() {
           <NavLink to="/about" className={navClass}>
             About
           </NavLink>
-          <div className="mt-2 border-t border-zinc-800 pt-2">
+          <div className="mt-2 flex flex-col gap-2 border-t border-zinc-800 pt-3">
+            <ThemeToggle />
             <Account />
           </div>
         </div>

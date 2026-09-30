@@ -6,9 +6,9 @@ import { LineChart } from "../components/LineChart";
 import { Badge, cx, fmt, Page, Query, Section, Stat, Stats, stateTone, Table, Td, Th, Tr, useCluster } from "../components/ui";
 
 const series = {
-  produced: "#3987e5",
-  consumed: "#d95926",
-  lag: "#199e70",
+  produced: "var(--series-produced)",
+  consumed: "var(--series-consumed)",
+  lag: "var(--series-lag)",
 };
 
 const status: Record<HealthStatus, { color: string; icon: string; label: string; banner: string }> = {
@@ -128,7 +128,7 @@ function Banner({ health: h, issues }: { health: HealthData; issues: number }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900/60 px-5 py-4">
       <div className="flex items-center gap-4">
-        <span className="grid size-11 place-items-center rounded-full text-lg font-bold text-zinc-950" style={{ background: s.color }} aria-hidden>
+        <span className="grid size-11 place-items-center rounded-full text-lg font-bold text-black" style={{ background: s.color }} aria-hidden>
           {s.icon}
         </span>
         <div className="flex flex-col">
@@ -169,7 +169,7 @@ function ChartCard({ title, subtitle, latest, latestLabel, color, children }: { 
 
 function StatusIcon({ status: s }: { status: HealthStatus }) {
   return (
-    <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-zinc-950" style={{ background: status[s].color }} role="img" aria-label={status[s].label}>
+    <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-black" style={{ background: status[s].color }} role="img" aria-label={status[s].label}>
       {status[s].icon}
     </span>
   );

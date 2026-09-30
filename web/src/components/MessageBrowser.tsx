@@ -397,7 +397,7 @@ function MessageTable({ messages: raw, selected, checked, onSelect, onToggle }: 
               className={cx(
                 columns,
                 "absolute inset-x-0 top-0 h-8 cursor-pointer border-b border-zinc-800/50 tabular-nums text-xs",
-                selected && key(selected) === k ? "bg-indigo-500/15" : "hover:bg-zinc-900",
+                selected && key(selected) === k ? "bg-indigo-500/15" : "hover:bg-zinc-800/40",
               )}
             >
               <span onClick={(e) => e.stopPropagation()}>

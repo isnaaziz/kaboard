@@ -54,7 +54,7 @@ export function Toaster() {
           className="animate-toast-in pointer-events-auto flex items-start gap-3 rounded-lg border border-zinc-700 bg-zinc-900/95 p-3 shadow-xl shadow-black/40 backdrop-blur"
         >
           <span
-            className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-zinc-950"
+            className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-black"
             style={{ background: tones[t.tone].color }}
             role="img"
             aria-label={tones[t.tone].label}
